@@ -69,6 +69,42 @@ function addDays(d, n) {
   return x;
 }
 
+function addMonthsClamped(d, n) {
+  const x = new Date(d);
+  const originalDay = x.getDate();
+
+  x.setDate(1);
+  x.setMonth(x.getMonth() + n);
+
+  const lastDay = new Date(
+    x.getFullYear(),
+    x.getMonth() + 1,
+    0
+  ).getDate();
+
+  x.setDate(Math.min(originalDay, lastDay));
+  return x;
+}
+
+function addYearsClamped(d, n) {
+  const x = new Date(d);
+  const originalMonth = x.getMonth();
+  const originalDay = x.getDate();
+
+  x.setDate(1);
+  x.setFullYear(x.getFullYear() + n);
+  x.setMonth(originalMonth);
+
+  const lastDay = new Date(
+    x.getFullYear(),
+    originalMonth + 1,
+    0
+  ).getDate();
+
+  x.setDate(Math.min(originalDay, lastDay));
+  return x;
+}
+
 function sameDay(a, b) {
   return (
     a.getFullYear() === b.getFullYear() &&
@@ -146,6 +182,8 @@ export default function CalendarView() {
   const [color, setColor] = useState(
     EVENT_COLORS[0].value
   );
+  const [recurrence, setRecurrence] = useState("none");
+  const [recurrenceEndDate, setRecurrenceEndDate] = useState("");
 
   const [formError, setFormError] = useState("");
 
@@ -267,15 +305,83 @@ export default function CalendarView() {
     const map = {};
 
     events.forEach((ev) => {
-      const key = formatDateKey(
-        new Date(ev.start_at)
-      );
+      const originalStart = new Date(ev.start_at);
+      const originalEnd = new Date(ev.end_at);
 
-      if (!map[key]) {
-        map[key] = [];
+      const addOccurrence = (occurrenceStart) => {
+        const duration =
+          originalEnd.getTime() - originalStart.getTime();
+
+        const occurrenceEnd = new Date(
+          occurrenceStart.getTime() + duration
+        );
+
+        const occurrence = {
+          ...ev,
+          start_at: occurrenceStart.toISOString(),
+          end_at: occurrenceEnd.toISOString(),
+          occurrence_id: `${ev.id}-${formatDateKey(
+            occurrenceStart
+          )}`,
+          is_recurring_occurrence:
+            ev.recurrence && ev.recurrence !== "none",
+        };
+
+        const key = formatDateKey(occurrenceStart);
+
+        if (!map[key]) {
+          map[key] = [];
+        }
+
+        map[key].push(occurrence);
+      };
+
+      if (!ev.recurrence || ev.recurrence === "none") {
+        addOccurrence(originalStart);
+        return;
       }
 
-      map[key].push(ev);
+      if (!ev.recurrence_end_date) {
+        addOccurrence(originalStart);
+        return;
+      }
+
+      const recurrenceEnd = new Date(
+        `${ev.recurrence_end_date}T23:59:59`
+      );
+
+      if (recurrenceEnd < originalStart) {
+        addOccurrence(originalStart);
+        return;
+      }
+
+      let occurrenceStart = new Date(originalStart);
+      let safety = 0;
+
+      while (occurrenceStart <= recurrenceEnd && safety < 1000) {
+        addOccurrence(occurrenceStart);
+
+        if (ev.recurrence === "daily") {
+          occurrenceStart = addDays(occurrenceStart, 1);
+        } else if (ev.recurrence === "weekly") {
+          occurrenceStart = addDays(occurrenceStart, 7);
+        } else if (ev.recurrence === "monthly") {
+          occurrenceStart = addMonthsClamped(occurrenceStart, 1);
+        } else if (ev.recurrence === "yearly") {
+          occurrenceStart = addYearsClamped(occurrenceStart, 1);
+        } else {
+          break;
+        }
+
+        safety += 1;
+      }
+    });
+
+    Object.values(map).forEach((dayEvents) => {
+      dayEvents.sort(
+        (a, b) =>
+          new Date(a.start_at) - new Date(b.start_at)
+      );
     });
 
     return map;
@@ -324,6 +430,8 @@ export default function CalendarView() {
     );
 
     setColor(EVENT_COLORS[0].value);
+    setRecurrence("none");
+    setRecurrenceEndDate("");
     setFormError("");
     setModalOpen(true);
   }
@@ -343,6 +451,8 @@ export default function CalendarView() {
     setColor(
       ev.color || EVENT_COLORS[0].value
     );
+    setRecurrence(ev.recurrence || "none");
+    setRecurrenceEndDate(ev.recurrence_end_date || "");
 
     setFormError("");
     setModalOpen(true);
@@ -388,6 +498,26 @@ export default function CalendarView() {
       return;
     }
 
+    if (recurrence !== "none") {
+      if (!recurrenceEndDate) {
+        setFormError(
+          "Укажите дату окончания повторения"
+        );
+        return;
+      }
+
+      const recurrenceEnd = new Date(
+        `${recurrenceEndDate}T23:59:59`
+      );
+
+      if (recurrenceEnd < startOfDay(start)) {
+        setFormError(
+          "Дата окончания повторения не может быть раньше даты события"
+        );
+        return;
+      }
+    }
+
     const user = await getCurrentUser();
 
     if (!user) {
@@ -403,6 +533,11 @@ export default function CalendarView() {
       end_at: end.toISOString(),
       color,
       user_id: user.id,
+      recurrence,
+      recurrence_end_date:
+        recurrence === "none"
+          ? null
+          : recurrenceEndDate || null,
     };
 
     if (editingId) {
@@ -758,6 +893,10 @@ export default function CalendarView() {
                             {formatTime(
                               event.start_at
                             )}{" "}
+                            {event.recurrence &&
+                            event.recurrence !== "none"
+                              ? "↻ "
+                              : ""}
                             {event.title}
                           </div>
                         ))}
@@ -1090,6 +1229,64 @@ export default function CalendarView() {
                   />
                 </label>
               </div>
+
+              <div>
+                <label className="flex flex-col gap-1.5">
+                  <span className="text-sm font-medium">
+                    Повторение
+                  </span>
+
+                  <select
+                    value={recurrence}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setRecurrence(value);
+
+                      if (value === "none") {
+                        setRecurrenceEndDate("");
+                      }
+                    }}
+                    className="h-12 rounded-2xl border border-nav-border bg-background px-3 text-sm outline-none ring-accent focus:ring-2"
+                  >
+                    <option value="none">
+                      Не повторяется
+                    </option>
+                    <option value="daily">
+                      Каждый день
+                    </option>
+                    <option value="weekly">
+                      Каждую неделю
+                    </option>
+                    <option value="monthly">
+                      Каждый месяц
+                    </option>
+                    <option value="yearly">
+                      Каждый год
+                    </option>
+                  </select>
+                </label>
+              </div>
+
+              {recurrence !== "none" && (
+                <div>
+                  <label className="flex flex-col gap-1.5">
+                    <span className="text-sm font-medium">
+                      Повторять до
+                    </span>
+
+                    <input
+                      type="date"
+                      value={recurrenceEndDate}
+                      onChange={(e) =>
+                        setRecurrenceEndDate(
+                          e.target.value
+                        )
+                      }
+                      className="h-12 rounded-2xl border border-nav-border bg-background px-3 text-sm outline-none ring-accent focus:ring-2"
+                    />
+                  </label>
+                </div>
+              )}
 
               <div>
                 <span className="text-sm font-medium mb-2 block">
