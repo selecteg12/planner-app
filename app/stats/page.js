@@ -51,6 +51,7 @@ function endOfMonth(date = new Date()) {
 function getYesterday(date = new Date()) {
   const d = new Date(date);
   d.setDate(d.getDate() - 1);
+
   return formatDateKey(d);
 }
 
@@ -87,6 +88,7 @@ function getHeatColor(count) {
   if (count === 0) return "bg-gray-100";
   if (count === 1) return "bg-blue-200";
   if (count === 2) return "bg-blue-400";
+
   return "bg-blue-600";
 }
 
@@ -103,10 +105,32 @@ export default function StatsPage() {
   async function fetchData() {
     setLoading(true);
 
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      console.error("Не удалось получить пользователя:", userError);
+      setLoading(false);
+      return;
+    }
+
     const [habitsRes, completionsRes, tasksRes] = await Promise.all([
-      supabase.from("habits").select("*"),
-      supabase.from("habit_completions").select("*"),
-      supabase.from("tasks").select("*"),
+      supabase
+        .from("habits")
+        .select("*")
+        .eq("user_id", user.id),
+
+      supabase
+        .from("habit_completions")
+        .select("*")
+        .eq("user_id", user.id),
+
+      supabase
+        .from("tasks")
+        .select("*")
+        .eq("user_id", user.id),
     ]);
 
     if (habitsRes.error) {
@@ -180,35 +204,19 @@ export default function StatsPage() {
 
   const tasksThisWeek = useMemo(() => {
     return tasks.filter((task) => {
-      const createdAt = task.created_at
-        ? new Date(task.created_at)
-        : null;
+      if (!task.created_at) return false;
 
-      const completedAt = task.completed_at
-        ? new Date(task.completed_at)
-        : null;
+      const createdAt = new Date(task.created_at);
 
-      const createdThisWeek =
-        createdAt &&
-        createdAt >= weekStart &&
-        createdAt <= weekEnd;
-
-      const completedThisWeek =
-        completedAt &&
-        completedAt >= weekStart &&
-        completedAt <= weekEnd;
-
-      return createdThisWeek || completedThisWeek;
+      return createdAt >= weekStart && createdAt <= weekEnd;
     });
   }, [tasks, weekStart, weekEnd]);
 
-  const completedTasksThisWeek = tasksThisWeek.filter(
-    (task) => task.done && task.completed_at
-  );
+  const completedTasksCount = tasksThisWeek.filter(
+    (task) => task.done
+  ).length;
 
   const totalTasksThisWeek = tasksThisWeek.length;
-
-  const completedTasksCount = completedTasksThisWeek.length;
 
   const weekCompletionRate =
     totalTasksThisWeek > 0
@@ -235,10 +243,7 @@ export default function StatsPage() {
 
       const completed = new Date(task.completed_at);
 
-      if (
-        completed < monthStart ||
-        completed > monthEnd
-      ) {
+      if (completed < monthStart || completed > monthEnd) {
         return;
       }
 
@@ -509,6 +514,7 @@ export default function StatsPage() {
 
             <span>Больше</span>
           </div>
+
         </div>
 
         <div className="text-center text-sm text-muted mt-6">
