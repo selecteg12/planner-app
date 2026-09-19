@@ -92,10 +92,10 @@ Each user's data is associated with their authenticated user ID.
 
 Row Level Security policies prevent users from accessing data belonging to other accounts.
 
-Database
+##Database
 
 The main database entities are:
-
+```text
 User
  │
  ├── Tasks
@@ -105,25 +105,26 @@ User
  └── Habits
        │
        └── Habit Completions
-Tasks
+```
+###Tasks
 
 Stores personal tasks and their completion state.
 
-Events
+###Events
 
 Stores calendar events, including date, time and recurrence settings.
 
-Habits
+###Habits
 
 Stores habits created by the user.
 
-Habit Completions
+###Habit Completions
 
 Stores individual habit completion records by date.
 
 A unique constraint prevents the same habit from being completed multiple times on the same day.
 
-Authentication & Security
+##Authentication & Security
 
 Authentication is handled using Supabase Auth.
 
@@ -175,7 +176,8 @@ The GitHub repository is connected to Vercel, allowing new commits to be deploye
 
 Environment variables must be configured in the Vercel project settings.
 
-Project Structure
+##Project Structure
+```text
 planner-app/
 │
 ├── app/
@@ -201,7 +203,8 @@ planner-app/
 ├── next.config.*
 ├── postcss.config.*
 └── README.md
-Roadmap
+```
+##Roadmap
 Completed
  Calendar
  Task management
@@ -220,7 +223,7 @@ Planned
  AI daily planning
  Push notifications
  Improved mobile experience
-AI Assistant
+##AI Assistant
 
 One of the planned features is an AI assistant integrated directly into the planner.
 
@@ -246,7 +249,8 @@ The assistant will eventually be able to perform actions such as:
 
 The AI integration is planned around controlled access to specific planner operations rather than unrestricted access to the database.
 
-Future Architecture
+##Future Architecture
+```text
                     ┌─────────────────┐
                     │   Planner App   │
                     │                 │
@@ -272,3 +276,4 @@ Future Architecture
               └──────────────┼──────────────┘
                              ▼
                          Supabase
+```
