@@ -204,11 +204,11 @@ export default function StatsPage() {
 
   const tasksThisWeek = useMemo(() => {
     return tasks.filter((task) => {
-      if (!task.created_at) return false;
-
-      const createdAt = new Date(task.created_at);
-
-      return createdAt >= weekStart && createdAt <= weekEnd;
+      if (!task.deadline) return false;
+  
+      const deadline = new Date(`${task.deadline}T00:00:00`);
+  
+      return deadline >= weekStart && deadline <= weekEnd;
     });
   }, [tasks, weekStart, weekEnd]);
 
