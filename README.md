@@ -142,8 +142,10 @@ Getting Started
 1. Clone the repository
 git clone https://github.com/selecteg12/planner-app.git
 cd planner-app
+
 2. Install dependencies
 npm install
+
 3. Configure environment variables
 
 Create a .env.local file in the project root:
