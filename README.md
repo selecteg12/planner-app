@@ -1,281 +1,135 @@
-# Planner App
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Planner
 
-## Getting Started
+**Tasks, calendar, habits, and productivity statistics in one personal workspace.**
 
-A personal productivity and planning web application built with Next.js and Supabase.
+[Hosted app](https://planner-app-six-woad.vercel.app) · [Telegram AI assistant](https://github.com/selecteg12/planner-ai-assistant)
 
-The application combines a calendar, task management, habit tracking and productivity statistics in a single interface.
+Planner is a personal productivity web application built with Next.js, React, and Supabase. It combines everyday planning with a weekly task overview and habit tracking. The interface is in Russian.
+
+The companion Telegram assistant connects to the same Supabase account and records, letting users manage their plan through natural-language messages.
 
 ## Features
 
-- 📅 Calendar
-  - Month and week views
-  - Create, edit and delete events
-  - Event date and time management
-  - Recurring events
+| Area | Implemented functionality |
+| --- | --- |
+| Tasks | Create tasks with notes, deadlines, and low/medium/high priority; mark them complete or reopen them; delete tasks. Open tasks appear before completed ones, with overdue tasks prioritised. |
+| Calendar | Month and week views; create, edit, and delete events; event colours; daily, weekly, monthly, and yearly recurrence with an end date. Open task deadlines also appear in the calendar. |
+| Habits | Create and delete habits, mark or undo today's completion, and track current streaks. Completion records are stored by date. |
+| Statistics | Weekly task completion rate, today's habit progress, current habit streaks, and a monthly heatmap of completed tasks. |
+| Account | Email/password registration and login, profile, logout, and Telegram account linking with a short-lived one-time code. |
 
-- ✅ Tasks
-  - Create tasks
-  - Edit and delete tasks
-  - Mark tasks as completed
-  - Track task completion
+### How statistics are calculated
 
-- 🔁 Habits
-  - Create and delete habits
-  - Track daily habit completion
-  - Habit completion history
-  - Current streak tracking
+- **Weekly task completion:** completed tasks divided by all tasks whose deadline falls within the current Monday–Sunday week. Tasks without a deadline are excluded; an empty week displays 0%.
+- **Monthly heatmap:** completed tasks grouped by their `completed_at` date during the current month.
+- **Habit streak:** consecutive completion dates counted backwards from today, or yesterday when today's check-in has not yet been recorded.
 
-- 📊 Statistics
-  - Task completion statistics
-  - Habit statistics
-  - Weekly productivity overview
-  - Productivity heatmap
+## Telegram AI assistant
 
-- 👤 Authentication
-  - Email and password registration
-  - Login and logout
-  - User-specific data
-  - Protected application routes
+The assistant is implemented in a [separate repository](https://github.com/selecteg12/planner-ai-assistant). It can read a user's plan, create and update tasks and events, record habit check-ins, manage ideas, and schedule reminders.
 
-- 🤖 AI Assistant
-  - Planned integration with the planner
-  - Natural-language interaction with tasks and calendar
-  - Smart reminders
-  - AI-powered daily planning
+To connect an account:
 
-## Tech Stack
+1. Sign in to Planner and open **Profile**.
+2. Create a connection code. It is valid for 10 minutes.
+3. Open the configured Telegram bot, send `/start`, and submit the code.
 
-### Frontend
+The browser sends only the code's SHA-256 hash to a Supabase RPC for storage. The server-side assistant consumes the code and links the Telegram account to the Planner user. The bot asks for separate confirmation before deleting a task, event, or idea.
 
-- Next.js
-- React
-- Tailwind CSS
-- JavaScript
+Bot credentials, LLM configuration, reminder scheduling, optional tables, and linking SQL are documented in the [assistant setup guide](https://github.com/selecteg12/planner-ai-assistant#run-locally). Running this web application alone does not deploy the bot.
 
-### Backend
+## Stack
 
-- Supabase
-- PostgreSQL
-- Supabase Authentication
-- Row Level Security (RLS)
+| Layer | Technology |
+| --- | --- |
+| Interface | Next.js App Router, React, JavaScript, Tailwind CSS |
+| Data and authentication | Supabase, PostgreSQL, Supabase Auth |
+| Access control | Authenticated user queries and PostgreSQL Row Level Security policies |
+| Hosting | Vercel |
+| Companion integration | Telegram assistant with Node.js, Telegraf, LLM tool calling, and Supabase |
 
-### Deployment
+## Architecture and data
 
-- Vercel
-- GitHub
+The browser uses the Supabase JavaScript client for authentication and planner operations. Both the web app and the separately deployed Telegram assistant work with shared planner records.
 
-## Architecture
+| Entity | Purpose |
+| --- | --- |
+| `tasks` | Titles, notes, deadlines, priorities, completion state, and completion timestamps |
+| `events` | Event details, start/end times, colours, and recurrence settings |
+| `habits` | Habit definitions owned by a user |
+| `habit_completions` | Habit check-ins by date |
+| Telegram linking tables and RPCs | Short-lived pairing codes and account links, configured through the assistant project |
 
-```text
-┌─────────────────────────┐
-│       Next.js App       │
-│                         │
-│  Calendar               │
-│  Tasks                  │
-│  Habits                 │
-│  Statistics             │
-│  Profile                │
-└────────────┬────────────┘
-             │
-             ▼
-┌─────────────────────────┐
-│        Supabase         │
-│                         │
-│  PostgreSQL             │
-│  Authentication         │
-│  Row Level Security     │
-└─────────────────────────┘
-```
-Each user's data is associated with their authenticated user ID.
+Records are associated with a `user_id`. The deployment must enable and configure RLS policies to enforce ownership on reads and writes; client-side filtering and route guards do not replace database access control.
 
-Row Level Security policies prevent users from accessing data belonging to other accounts.
+This repository contains the web application. It does not include a complete database migration or an automatic schema bootstrap.
 
-##Database
+## Run locally
 
-The main database entities are:
-```text
-User
- │
- ├── Tasks
- │
- ├── Events
- │
- └── Habits
-       │
-       └── Habit Completions
-```
-###Tasks
+Requirements: a Node.js version supported by Next.js 16, npm, and an existing Supabase project with the compatible Planner schema and access policies. Node.js 22 LTS is a suitable development baseline.
 
-Stores personal tasks and their completion state.
+1. Clone the repository and install the locked dependencies:
 
-###Events
+   ```bash
+   git clone https://github.com/selecteg12/planner-app.git
+   cd planner-app
+   npm ci
+   ```
 
-Stores calendar events, including date, time and recurrence settings.
+2. Create `.env.local` in the project root:
 
-###Habits
+   ```dotenv
+   NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+   ```
 
-Stores habits created by the user.
+   These values configure the browser client. Keep service-role keys, bot tokens, and LLM API keys out of browser environment variables and committed files.
 
-###Habit Completions
+3. Configure the database tables, ownership policies, and Supabase Auth settings. If using Telegram linking, also apply the relevant [assistant setup SQL](https://github.com/selecteg12/planner-ai-assistant/tree/main/schema-proposals) to the same project.
 
-Stores individual habit completion records by date.
+4. Start the development server:
 
-A unique constraint prevents the same habit from being completed multiple times on the same day.
+   ```bash
+   npm run dev
+   ```
 
-##Authentication & Security
+   Open [localhost:3000](http://localhost:3000).
 
-Authentication is handled using Supabase Auth.
+### Available commands
 
-Planner records are associated with the authenticated user's user_id.
+| Command | Purpose |
+| --- | --- |
+| `npm run dev` | Start the development server |
+| `npm run lint` | Run ESLint |
+| `npm run build` | Create a production build |
+| `npm start` | Run the production build locally |
 
-Row Level Security policies are used to restrict access to user-specific data.
+## Project structure
 
-The application separates data between accounts for:
+| Path | Purpose |
+| --- | --- |
+| `app/calendar/`, `components/CalendarView.jsx` | Calendar views and recurring events |
+| `app/tasks/`, `components/TasksView.jsx` | Task management and sorting |
+| `app/habits/` | Habits and daily check-ins |
+| `app/stats/` | Weekly metrics and activity heatmap |
+| `app/profile/` | Account details, logout, and Telegram pairing |
+| `app/login/`, `app/signup/` | Authentication screens |
+| `components/AuthGuard.jsx` | Authentication checks for the interface |
+| `components/BottomNav.jsx` | Main navigation |
+| `lib/supabase.js` | Supabase browser client |
+| `app/globals.css` | Shared styles |
 
-Tasks
-Calendar events
-Habits
-Habit completions
-Getting Started
-1. Clone the repository
-git clone https://github.com/selecteg12/planner-app.git
-cd planner-app
+## Deployment
 
-2. Install dependencies
-npm install
+Import the repository into Vercel and configure the two `NEXT_PUBLIC_SUPABASE_*` variables for the target environment. Configure Supabase Auth URLs for the deployed application and ensure the required schema and RLS policies exist in the connected database.
 
-3. Configure environment variables
+Deploy and configure the Telegram assistant separately against the same Supabase project. Its server-side secrets belong to the assistant deployment.
 
-Create a .env.local file in the project root:
+## Further development
 
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+- Add versioned database migrations and a documented setup for a fresh Supabase project.
+- Add browser checks for authentication, event recurrence, habit check-ins, and statistics.
+- Improve mobile interactions and feedback when a data operation fails.
+- Explore push notifications and more advanced daily planning.
 
-Do not commit .env.local or private credentials to the repository.
-
-4. Run the development server
-npm run dev
-
-Open the application at:
-
-http://localhost:3000
-Production Build
-
-Create a production build:
-
-npm run build
-
-Run the production server locally:
-
-npm start
-Deployment
-
-The application is deployed using Vercel.
-
-The GitHub repository is connected to Vercel, allowing new commits to be deployed automatically.
-
-Environment variables must be configured in the Vercel project settings.
-
-##Project Structure
-```text
-planner-app/
-│
-├── app/
-│   ├── calendar/
-│   ├── habits/
-│   ├── login/
-│   ├── signup/
-│   ├── stats/
-│   └── profile/
-│
-├── components/
-│   ├── CalendarView.jsx
-│   ├── TasksView.js
-│   ├── BottomNav.jsx
-│   └── AuthGuard.jsx
-│
-├── lib/
-│   └── supabase.js
-│
-├── public/
-│
-├── package.json
-├── next.config.*
-├── postcss.config.*
-└── README.md
-```
-##Roadmap
-Completed
- Calendar
- Task management
- Habit tracking
- Productivity statistics
- User authentication
- User-specific database records
- Supabase Row Level Security
- Vercel deployment
-Planned
- Recurring calendar events
- Improved statistics
- AI assistant
- Natural-language task creation
- Smart reminders
- AI daily planning
- Push notifications
- Improved mobile experience
-##AI Assistant
-
-One of the planned features is an AI assistant integrated directly into the planner.
-
-Instead of functioning as a standalone chatbot, the assistant will be able to interact with the user's planner data.
-
-For example:
-
-User:
-"What do I have planned for tomorrow?"
-
-AI:
-"You have 3 tasks and 2 calendar events tomorrow."
-
-The assistant will eventually be able to perform actions such as:
-
-"Add a workout every Monday at 18:00."
-
-"Move my meeting from 15:00 to 17:00."
-
-"Create a task to finish the project by Friday."
-
-"What tasks do I still have today?"
-
-The AI integration is planned around controlled access to specific planner operations rather than unrestricted access to the database.
-
-##Future Architecture
-```text
-                    ┌─────────────────┐
-                    │   Planner App   │
-                    │                 │
-                    │ Calendar        │
-                    │ Tasks           │
-                    │ Habits          │
-                    │ Statistics      │
-                    └────────┬────────┘
-                             │
-                             ▼
-                    ┌─────────────────┐
-                    │  AI Assistant   │
-                    │                 │
-                    │ Context         │
-                    │ Tool Calling    │
-                    │ Planning        │
-                    └────────┬────────┘
-                             │
-              ┌──────────────┼──────────────┐
-              ▼              ▼              ▼
-         Tasks API      Calendar API    Habits API
-              │              │              │
-              └──────────────┼──────────────┘
-                             ▼
-                         Supabase
-```
+These are future improvements; the calendar recurrence and companion Telegram assistant described above are already implemented in the source.
