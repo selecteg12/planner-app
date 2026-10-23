@@ -8,6 +8,32 @@ Planner is a personal productivity web application built with Next.js, React, an
 
 The companion Telegram assistant connects to the same Supabase account and records, letting users manage their plan through natural-language messages.
 
+## Screenshots
+
+Captured from the Russian-language application. Personal entries and account details have been redacted. The main navigation is visible in the statistics screenshot.
+
+### Calendar
+
+<p>
+  <img src="assets/screenshots/calendar-month.png" width="300" alt="Month calendar with recurring events and task deadline markers; personal event text redacted" />
+  <img src="assets/screenshots/calendar-week.png" width="300" alt="Week calendar with time blocks; personal event text redacted" />
+</p>
+
+### Tasks and habits
+
+<p>
+  <img src="assets/screenshots/tasks.png" width="300" alt="Task list with deadlines, priorities and completion controls; personal task titles redacted" />
+  <img src="assets/screenshots/habits.png" width="300" alt="Habit check-ins and current streaks; personal habit names redacted" />
+</p>
+
+### Statistics and navigation
+
+![Habit progress, weekly task completion, monthly activity heatmap and the five-section navigation](assets/screenshots/statistics.png)
+
+### Profile and Telegram linking
+
+<img src="assets/screenshots/profile.png" width="360" alt="Account profile and Telegram connection status with the email address redacted" />
+
 ## Features
 
 | Area | Implemented functionality |
