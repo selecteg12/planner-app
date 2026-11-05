@@ -1,3 +1,5 @@
+**English** | [Русский](README.ru.md)
+
 # Planner
 
 **Tasks, calendar, habits, and productivity statistics in one personal workspace.**
@@ -36,7 +38,7 @@ Captured from the Russian-language application. Personal entries and account det
 
 ## Features
 
-| Area | Implemented functionality |
+| Area | Features |
 | --- | --- |
 | Tasks | Create tasks with notes, deadlines, and low/medium/high priority; mark them complete or reopen them; delete tasks. Open tasks appear before completed ones, with overdue tasks prioritised. |
 | Calendar | Month and week views; create, edit, and delete events; event colours; daily, weekly, monthly, and yearly recurrence with an end date. Open task deadlines also appear in the calendar. |
@@ -157,5 +159,3 @@ Deploy and configure the Telegram assistant separately against the same Supabase
 - Add browser checks for authentication, event recurrence, habit check-ins, and statistics.
 - Improve mobile interactions and feedback when a data operation fails.
 - Explore push notifications and more advanced daily planning.
-
-These are future improvements; the calendar recurrence and companion Telegram assistant described above are already implemented in the source.
