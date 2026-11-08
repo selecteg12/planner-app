@@ -4,7 +4,7 @@
 
 **Tasks, calendar, habits, and productivity statistics in one personal workspace.**
 
-[Hosted app](https://planner-app-six-woad.vercel.app) · [Telegram AI assistant](https://github.com/selecteg12/planner-ai-assistant)
+[Telegram AI assistant](https://github.com/selecteg12/planner-ai-assistant)
 
 Planner is a personal productivity web application built with Next.js, React, and Supabase. It combines everyday planning with a weekly task overview and habit tracking. The interface is in Russian.
 
@@ -62,7 +62,7 @@ To connect an account:
 2. Create a connection code. It is valid for 10 minutes.
 3. Open the configured Telegram bot, send `/start`, and submit the code.
 
-The browser sends only the code's SHA-256 hash to a Supabase RPC for storage. The server-side assistant consumes the code and links the Telegram account to the Planner user. The bot asks for separate confirmation before deleting a task, event, or idea.
+The browser sends only the code's SHA-256 hash to a Supabase RPC for storage. The assistant verifies the code, marks it as used, and links the Telegram and Planner accounts. The bot asks for separate confirmation before deleting a task, event, or idea.
 
 Bot credentials, LLM configuration, reminder scheduling, optional tables, and linking SQL are documented in the [assistant setup guide](https://github.com/selecteg12/planner-ai-assistant#run-locally). Running this web application alone does not deploy the bot.
 
@@ -73,7 +73,6 @@ Bot credentials, LLM configuration, reminder scheduling, optional tables, and li
 | Interface | Next.js App Router, React, JavaScript, Tailwind CSS |
 | Data and authentication | Supabase, PostgreSQL, Supabase Auth |
 | Access control | Authenticated user queries and PostgreSQL Row Level Security policies |
-| Hosting | Vercel |
 | Companion integration | Telegram assistant with Node.js, Telegraf, LLM tool calling, and Supabase |
 
 ## Architecture and data
@@ -149,7 +148,7 @@ Requirements: a Node.js version supported by Next.js 16, npm, and an existing Su
 
 ## Deployment
 
-Import the repository into Vercel and configure the two `NEXT_PUBLIC_SUPABASE_*` variables for the target environment. Configure Supabase Auth URLs for the deployed application and ensure the required schema and RLS policies exist in the connected database.
+Set both `NEXT_PUBLIC_SUPABASE_*` variables and run `npm run build`. Configure the application URL in Supabase Auth and check that the database schema and access policies are in place.
 
 Deploy and configure the Telegram assistant separately against the same Supabase project. Its server-side secrets belong to the assistant deployment.
 
